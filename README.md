@@ -11,8 +11,7 @@ NSTool was written as hobby project, it was in development for a month but i los
 * Messy code
 # Usage
 1) download the py file
-2) go through the list of librarys required installing all of them \
-WARNING: install 'python-twitter' in pip and not twitter 
+2) Install requirements with 'pip install -r requirements.txt'
 3) You need twitter api credentials from the twitter developer panel, you need your api key, api secret, access token, access secret \
 aswell as a discord token (search how to find this) 
-4) if everything is good you should land in the menu, from here every is straight forward and the program should **hopefully** just work.
+4) if everything is good run main.py and you should **hopefully** land in the menu, from here every is straight forward and the program should **hopefully** just work.
