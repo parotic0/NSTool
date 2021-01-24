@@ -1,6 +1,5 @@
 from __future__ import print_function, unicode_literals
 from PyInquirer import style_from_dict, Token, prompt, Separator
-from pprint import pprint
 from pyfiglet import Figlet
 from clint.arguments import Args
 from clint.textui import puts, colored, indent
@@ -9,27 +8,23 @@ import twitter
 import time
 import webbrowser
 import os
+import sys
 import re
-import csv
 import requests
 import base64
 import json
-from dhooks import Webhook
 import sqlite3
-#import msvcrt
-from pynput import keyboard
 import tweepy 
-import platform
-#import speedtest   
+import platform  
 
-# IDEA: on pirated copy send them to rick roll when monitoring hyped drop        
+
 
 # logging in releated stuff
 api = ""
-a = []
-b = []
-c = []
-d = []
+consumer_key_array= []
+consumer_secret_array = []
+access_token_array = []
+access_secret_array = []
 authkeys = []
 amtofauthkeys = 0
 amtofapikeys = 0
@@ -46,6 +41,7 @@ fast = False
 keyInputSuccess = ""
 # misc
 ostype = platform.system()
+status = "🖓"
 
 
 style = style_from_dict({
@@ -63,7 +59,7 @@ MainOptions = [
         'type': 'rawlist',
         'name': 'Options',
         'message': 'Choose Option',
-        'choices': ['twitter Monitor', 'settings']
+        'choices': ['twitter monitor', 'settings']
     },
 ]
 
@@ -79,13 +75,10 @@ UpdateKeyOptions = [
 TwitterOptions = [
     {
         'type': 'checkbox',
-        'message': 'Select Options',
+        'message': 'Enable extensions',
         'name': 'Options',
         'choices': [
-            Separator('= Twitter ='),
-            {
-                'name': 'Open Links'
-            },
+            Separator('= Discord Modules ='),
             {
                 'name': 'Join Discord'
             }
@@ -156,14 +149,14 @@ def tweettime(id,time):
     ## logins into using tweepy
     #  using tweepy because our current api doesn't let you see tweet times.
     try:
-        tpa = tweepy.OAuthHandler(a[0],b[0])
-        tpa.set_access_token(c[0],d[0])
+        tpa = tweepy.OAuthHandler(consumer_key_array[0],consumer_secret_array[0])
+        tpa.set_access_token(access_token_array[0],access_secret_array[0])
         tpapi = tweepy.API(tpa)
         loggedin = True
-    except:
+    except Exception:
         loggedin = False
         print("Error API_FAILURE\nWe were unable to log into the api, this isnt a fatal error we can't see the time the tweet was tweeted.")
-    if loggedin == True:
+    if loggedin:
         tweet = tpapi.get_status(id)
         created_at = tweet.created_at
         ## still not as accurate as i want, kinda peak but its all we can do
@@ -175,6 +168,7 @@ def tweettime(id,time):
         print("time taken - "+time+"s")
 
 def monitor():
+    ClearTERMINAL()
     puts(colored.blue('Currently Monitoring - @' + acc + ' // User ID = ' + str(id)))
     grablatestid()
     delay = 0.3
@@ -184,12 +178,9 @@ def monitor():
         recent = str(api.GetUserTimeline(user_id=id, count=1, since_id=latestid, trim_user=True,
                                          exclude_replies=True, ))  # \/ this is some weird regex shit idk whats going on but it works, thanks ian lmao
         urltemp = re.findall(r"(?:(?:https?):\/\/|\b(?:[a-z\d]+\.))(?:(?:[^\s()<>]+|\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))?\))+(?:\((?:[^\s()<>]+|(?:\(?:[^\s()<>]+\)))?\)|[^\s`!()\[\]{};:'\".,<>?Â«Â»â€œâ€â€˜â€™]))?",recent)
-        checkurl = str(urltemp)
+        checkurl = str(urltemp)                
+        sys.stdout.write('\r O')
         
-        #with keyboard.Listener(
-        #        on_press=monitorpause) as kb:
-        #    kb.join()
-                
         if checkurl != "[]": # check if any urls have been picked up
             if len(urltemp) == 1:  # if theres only one url
                 url = str(urltemp[0])  # wonky work around
@@ -202,7 +193,7 @@ def monitor():
                         if "discord" not in longurl:  # checks for discord url
                             webbrowser.open(longurl)
                         else:
-                            if discjoiner == True:
+                            if discjoiner:
                                 print("Discord Invite Detected")
                                 inviteCode = longurl.replace(longurl[:27], '') # gets invite code
                                 JoinInvite(inviteCode)  # runs joininvite
@@ -210,14 +201,13 @@ def monitor():
                         print("twitter link, ignored")
                     timea = time.process_time() - start
                     tweettime(latestid,timea)
-                    #print("Time Taken: " + str(time.process_time() - start) + "s")
                     print("Full URL: " + str(longurl))
                     grablatestid() # updates latest tweet, so it doesn't repeat the last found tweet.
             else:
                 amt = len(urltemp) # basically the same thing, but we repeat the unshorten process so we get all urls.
-                a = 0
-                while a != amt:
-                    url = urltemp[a]
+                consumer_key_array = 0
+                while consumer_key_array != amt:
+                    url = urltemp[consumer_key_array]
                     if "t.co" in url:
                         start = time.process_time()
                         print("Found t.co link! - " + url)
@@ -227,7 +217,7 @@ def monitor():
                             if "discord" not in longurl:
                                 webbrowser.open(longurl)
                             else:
-                                if discjoiner == True:
+                                if discjoiner:
                                     print("Discord Invite Detected")
                                     inviteCode = longurl.replace(longurl[:27], '')
                                     print(inviteCode)
@@ -238,33 +228,30 @@ def monitor():
                         tweettime(recent,timea)
                         print("Full URL: " + str(longurl))
                         grablatestid()
-                        DiscordWebhook(name)
-                    a += 1
+                    consumer_key_array += 1
         time.sleep(delay)
+        sys.stdout.write('\r o')
 
-def verifyUser():  # verify user is real.
-    global valid
+def verifyUser(acc):  # verify user is real.
     global id
-    while valid != True: # not dynamic, can only set user. program has to restart each time a different person has to e monitored.
-        global acc
-        check = ""
+    check = api.GetUser(screen_name=acc) # checks if user exists
+    if check != "": # if theres actually something
+        puts(colored.green('Verified account'))
+        valid = True
+        id = check.id
+        # follows account so if they go private it's calm
         try:
-            check = api.GetUser(screen_name=acc) # checks if user exists
-        except:
-            puts(colored.red("Account doesn't exist, or API keys are incorrect\nIf you know this account is real, please check your keys"))
+            api.CreateFriendship(user_id=id)
+            puts(colored.green("Followed Account"))
+        except Exception:
+            print()
+        print("Preparing... (this will take a couple of seconds)")
+        return True
 
-        if check != "": # if theres actually something
-            puts(colored.green('Verified account'))
-            valid = True
+    else:
+        puts(colored.red("Account doesn't exist, or API keys are incorrect\nIf you know this account is real, please check your keys"))
+        return False
 
-    # gets user id
-    id = check.id
-
-    # follows account so if they go private it's calm
-    try:
-        api.CreateFriendship(user_id=id)
-    except: 
-        print("Already Following.")
 
 def ValidAccessToken(authToken):
     headers = {
@@ -348,23 +335,14 @@ def JoinInvite(inviteCode): # the invite handler
         accountsJoined += 1
 
 def testapikey(): ###################################################################################################
-    counter = 0
-    if fast:
-        puts(colored.blue("You cannot test while in application mode, switch to user mode to test."))
-        counter = len(a)
-    
-    while counter != len(a):
-        tempapi = twitter.Api(consumer_key=a[counter], consumer_secret=b[counter], access_token_key=c[counter], access_token_secret=d[counter])
-        try:
-            y = tempapi.VerifyCredentials()
-            if y != []:
-                puts(colored.green("Key "+str(counter+1)+" is working. :D"))
-        except Exception:
-            puts(colored.red("Key "+str(counter+1)+" isn't working. :("))
-        finally:
-            counter += 1
-    puts(colored.cyan("Tests finished, returning to menu in 3 seconds..."))
-    time.sleep(3)
+    try:
+        y = api.VerifyCredentials()
+    except Exception:
+        puts(colored.red("Key isn't working. :("))
+        return False
+    if y != []:
+        puts(colored.green("Key is working. :D"))
+        return True
 
 def testdiscord():
     counter = 0
@@ -372,22 +350,32 @@ def testdiscord():
         result = ValidAccessToken(authkeys[counter])
         if result:
             puts(colored.green(str(counter+1)+" key is working :D"))
-        if result == False:
+        if not result:
             puts(colored.red(str(counter+1)+" key is invalid :("))
         counter += 1
     puts(colored.cyan("Tests finished, returning to menu in 3 seconds..."))
     time.sleep(3)
 
-def addapikeys(): # lol
-    a = str(input()) 
-    b = str(input())
-    c = str(input()) 
-    d = str(input()) 
+def addapikeys(): # lol this is shit
+    #retrieve
+    puts(colored.blue("Enter consumer key"))
+    consumer_key = input()
+
+    puts(colored.blue("Enter consumer secret key"))
+    consumer_secret = input()
+    
+    puts(colored.blue("Enter application access key"))
+    access_token = input() 
+
+    puts(colored.blue("Enter application secret key"))
+    access_secret = input() 
+    # add to database
     conn = sqlite3.connect('data.db')
     connection = conn.cursor()
-    connection.execute("INSERT INTO data (CK, CSK, ATK, ATSK, DAK) VALUES (?, ?, ?, ?, ?)", (a, b, c, d, None))
-    conn.commit() 
+    connection.execute("INSERT INTO data (CK, CSK, ATK, ATSK, DAK) VALUES (?, ?, ?, ?, ?)", (consumer_key, consumer_secret, access_token, access_secret, None))
+    conn.commit()
     conn.close()
+    print("Added to database")
 
 def addauthkey(): 
     key = str(input()) 
@@ -404,11 +392,11 @@ def getKEYSfromuser(): # split this into multiple functions
         DisplayUserKeyInput = prompt(userInputKeys, style=style)
         json_str = json.dumps(DisplayUserKeyInput)
         resp = json.loads(json_str)
-        a = resp['Consumer Key']
-        b = resp['Consumer Secret Key']
-        c = resp['Access Token Key']
-        d = resp['Access Token Secret Key']
-        tempapi = twitter.Api(consumer_key=a, consumer_secret=b, access_token_key=c, access_token_secret=d)
+        consumer_key_array = resp['Consumer Key']
+        consumer_secret_array = resp['Consumer Secret Key']
+        access_token_array = resp['Access Token Key']
+        access_secret_array = resp['Access Token Secret Key']
+        tempapi = twitter.Api(consumer_key=consumer_key_array, consumer_secret=consumer_secret_array, access_token_key=access_token_array, access_token_secret=access_secret_array)
         try:
             y = tempapi.VerifyCredentials()
             if y != []:
@@ -424,7 +412,7 @@ def getKEYSfromuser(): # split this into multiple functions
                     puts(colored.green("Successfully connected to Discord"))
                     conn = sqlite3.connect('data.db')
                     connection = conn.cursor()
-                    connection.execute("INSERT INTO data (CK, CSK, ATK, ATSK, DAK) VALUES (?, ?, ?, ?, ?)", (str(a), str(b), str(c), str(d), str(auth)))
+                    connection.execute("INSERT INTO data (CK, CSK, ATK, ATSK, DAK) VALUES (?, ?, ?, ?, ?)", (str(consumer_key_array), str(consumer_secret_array), str(access_token_array), str(access_secret_array), str(auth)))
                     conn.commit()
                     conn.close()
 
@@ -442,13 +430,16 @@ def getKEYSfromuser(): # split this into multiple functions
 #        input(puts(colored.blue("Monitor paused...\nPress space to continue")))
 
 def TwitterUsername():
-    global ShowTwitterUsername
-    global acc
-    DisplayTwitterusername = prompt(ShowTwitterUsername, style=style)
-    json_str = json.dumps(DisplayTwitterusername)  # dumps the json object into an element
-    resp = json.loads(json_str)  # load the json to a string
-    acc = resp['twitter username']
-    verifyUser()
+    working = False
+    while not working:
+        global ShowTwitterUsername
+        global acc
+        DisplayTwitterusername = prompt(ShowTwitterUsername, style=style)
+        json_str = json.dumps(DisplayTwitterusername)  # dumps the json object into an element
+        resp = json.loads(json_str)  # load the json to a string
+        acc = resp['twitter username']
+        working = verifyUser(acc)
+        time.sleep(10)
 
 
 def Settings():
@@ -469,46 +460,38 @@ def Twitter():
     global TwitterOptions
     global discjoiner
     optionsselected = False
-    while optionsselected != True:
+    while not optionsselected:
         os.system('clear')
         f = Figlet(font='slant')
         puts(colored.green((f.renderText('nsTool'))))
         DisplayTwitterOptions = prompt(TwitterOptions, style=style)
         json_str = json.dumps(DisplayTwitterOptions)  # dumps the json object into an element ['Open Links', 'Join Discord']
         resp = json.loads(json_str)  # load the json to a string
-        try:
-            ArrayOutput = resp['Options']
-            if len(ArrayOutput) > 1:
-                if ArrayOutput[0] + ArrayOutput[1] == "Open LinksJoin Discord":
-                    puts(colored.blue('Link Opener and Invite Joiner is on'))
-                    discjoiner = True
-                    optionsselected = True
-                    TwitterUsername()
-                else:
-                    print("Error Monitor_Failure\nThere was a fault with the monitor paramaters, contact developers.")
-            else:
-                if ArrayOutput[0] == "Open Links":
-                    print("Link Opener is on")
-                    optionsselected = True
-                    TwitterUsername()
-                else:
-                    print("Discord Joiner is on")
-                    discjoiner = True
-                    optionsselected = True
-                    TwitterUsername()
-        except:
-            puts(colored.red("Pick an option >:("))
+        ArrayOutput = resp['Options']
+        if ArrayOutput == []:
+            puts(colored.blue('Link Opener is on'))
+            discjoiner = True
+            optionsselected = True
+            TwitterUsername()
+            monitor()
+        if ArrayOutput[0] == "Join Discord":
+            print("Discord Joiner is on")
+            discjoiner = True
+            optionsselected = True
+            TwitterUsername()
+            monitor()
 
 
 def ShowOptionScreen():
     global MainOptions  # make the main options variable global this contains the options that are shown to the user
-
     os.system('clear')
     f = Figlet(font='slant')
     puts(colored.green((f.renderText('nsTools'))))
+    puts(colored.cyan(str(amtofapikeys)+" - sets of api keys loaded  |   "+str(amtofauthkeys)+" - discord auth keys loaded | "+str(status)+" - API connection"))
     DisplayMainOptions = prompt(MainOptions, style=style)  # displays the options
     json_str = json.dumps(DisplayMainOptions)  # dumps the json object into an element
     resp = json.loads(json_str)  # load the json to a string
+    
     if resp['Options'] == "Settings":  # check what the user picked
         Settings()
     else:
@@ -523,12 +506,14 @@ def keysmenu(): ################################################################
     DisplayKeyOptions = prompt(UpdateKeyOptions, style=style)  # displays the options
     json_str = json.dumps(DisplayKeyOptions)  # dumps the json object into an element
     resp = json.loads(json_str)  # load the json to a string
-    if resp['Options'] == "Add new Twitter Api key":  # check what the user picked
+    if resp['Options'] == "add new twitter API key":  # check what the user picked
         addapikeys()
     if resp['Options'] == "Add new discord auth key":  # check what the user picked
         addauthkey()
     if resp['Options'] == "Test API keys":  # check what the user picked
-        testapikey()
+        print("Which key set do you want to test?\nYou currently have "+amtofapikeys+" API Key(s) and "+amtofauthkeys+" discord auth keys")
+        key = input()
+        testapikey(key)
     if resp['Options'] == "Test Discord Auth keys":  # check what the user picked
         testdiscord()
     if resp['Options'] == "Back":  # check what the user picked
@@ -537,67 +522,54 @@ def keysmenu(): ################################################################
         puts(colored.green((f.renderText('nsTools'))))
         Settings()
 
-    # else:
-    #     DisplayDiscordUserKeyInput = prompt(userInputDiscord, style=style)
-    #     json_str1 = json.dumps(DisplayDiscordUserKeyInput)
-    #     resp1 = json.loads(json_str1)
-    #     auth = resp1['First Discord Auth key']
-    #     result = ValidAccessToken(auth)
-    #     if result:
-    #         ClearTERMINAL()
-    #         puts(colored.green("Successfully connected to Discord"))
-    #         conn = sqlite3.connect('data.db')
-    #         connection = conn.cursor()
-    #         connection.execute("INSERT INTO data (CK, CSK, ATK, ATSK, DAK) VALUES (?, ?, ?, ?, ?)", (str(a), str(b), str(c), str(d), str(auth)))
-    #         conn.commit()
-    #         conn.close()
-
-
 def apilogin(a, b, c, d):
     global api
     global fast
     global UserModes
     global apiconnected
+    global status
     DisplayUserModes = prompt(UserModes, style=style)
     json_str = json.dumps(DisplayUserModes)  # dumps the json object into an element
     resp = json.loads(json_str)  # load the json to a string
     userMode = resp['User Mode Options']
-    
-    timeout = 2
-    startTime = time.time()
-    key = 0
-    inp = None
+    attempts = 0
     puts(colored.blue("Press any key to manually select profile"))
-    #while True:                 
-    #    if msvcrt.kbhit():
-    #        inp = msvcrt.getch()
-    #        break
-    #    elif time.time() - startTime > timeout:
-    #        break
-    #if inp:
-    #    print("Select which profile to use\nThere are "+str(amtofapikeys)+" keys loaded, select using 1 - "+str(amtofapikeys))
-    #    key = int(input())-1
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #                                                                            #
+    #  on keystroke interrupt and allow user to select what set of keys to use.  #
+    #                                                                            #
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    while not apiconnected:
+        if attempts == 3:
+            puts(colored.red("Theres an issue with your keys, Entering keys menu..."))
+            time.sleep(5)
+            keysmenu()
 
-    while apiconnected != True:
         if userMode == "help":
             print(
                 "\nUser mode is generally good enough for most drops,\nit runs slightly slower than application mode but has the ability to monitor private accounts\nApplication mode is faster than user mode but cannot monitor private accounts.\nif you have no idea what this means, just go with user mode\n")
+            input("press any key to contiue")
         if userMode == "User Mode":
-            api = twitter.Api(consumer_key=a[key], consumer_secret=b[key], access_token_key=c[key], access_token_secret=d[key])
-            apiconnected = True
+            api = twitter.Api(consumer_key=a, consumer_secret=b, access_token_key=c, access_token_secret=d)
+            apiconnected = testapikey()
+            attempts+=1
         if userMode == "Application":
-            api = twitter.Api(consumer_key=a[key], consumer_secret=b[key], access_token_key=c[key], access_token_secret=d[key],
-                            application_only_auth=True)
-            apiconnected = True
+            api = twitter.Api(consumer_key=a, consumer_secret=b, access_token_key=c, access_token_secret=d)
+            apiconnected = testapikey()
             fast = True
+            attempts+=1
+        if apiconnected:
+            puts(colored.green("Connected to API"))
+            status = "👍"
+            time.sleep(2)
 
 
 # this should work dynamically, in theory this can support infinite amounts of keys.
 def getDatabase():
-    global a
-    global b
-    global c
-    global d
+    global consumer_key_array
+    global consumer_secret_array
+    global access_token_array
+    global access_secret_array
     global authkeys
     global amtofapikeys
     global amtofauthkeys
@@ -612,19 +584,20 @@ def getDatabase():
     authkeysindb = connection.execute('''SELECT COUNT(DISTINCT DAK) from data''')# gets the amount discord auth keys
     amtofauthkeys = str(authkeysindb.fetchall())
     amtofauthkeys = int(amtofauthkeys.strip("[(,)]"))   
-    puts(colored.cyan(str(amtofapikeys)+" - sets of api keys loaded  |   "+str(amtofauthkeys)+" - discord auth keys loaded"))
+
+    puts(colored.cyan(str(amtofapikeys)+" - sets of api keys loaded  |   "+str(amtofauthkeys)+" - discord auth keys loaded | "+str(status)+" - API connection "))
     connection.execute('''SELECT * FROM data''') # scans table to check if anything exists
     row = connection.fetchone()
     if row:    # if a row is exists
         selectedapikeys = 0
         selecteddiscordkeys = 0
         while selectedapikeys != amtofapikeys:
-            connection.execute(f"SELECT * FROM data LIMIT 1 OFFSET ? ", (str(selectedapikeys),) )
+            connection.execute("SELECT * FROM data LIMIT 1 OFFSET ? ", (str(selectedapikeys),) )
             row = connection.fetchone()
-            a.append(row[0])  # load
-            b.append(row[1])
-            c.append(row[2])
-            d.append(row[3])
+            consumer_key_array.append(row[0])  # load
+            consumer_secret_array.append(row[1])
+            access_token_array.append(row[2])
+            access_secret_array.append(row[3])
             selectedapikeys += 1
         while selecteddiscordkeys != amtofauthkeys:
             connection.execute("SELECT * FROM data LIMIT 1 OFFSET ? ", (str(selecteddiscordkeys),) )
@@ -661,14 +634,11 @@ def ClearTERMINAL(): ## OS Detection included
 while __name__ == '__main__':
     ClearTERMINAL()# clears the terminal and adds the logo to the top
     checkDatabaseFile()# checks if the database exists if not it creates one
-    if apiconnected != True:
+    if not apiconnected:
         getdatabaseresult = getDatabase()
         if getdatabaseresult == "getKeys":
             getKEYSfromuser()
-            apilogin(a, b, c, d)
+            apilogin(consumer_key_array[0], consumer_secret_array[0], access_token_array[0], access_secret_array[0])
         else:
-            apilogin(a, b, c, d)
+            apilogin(consumer_key_array[0], consumer_secret_array[0], access_token_array[0], access_secret_array[0])
     ShowOptionScreen()# shows menu
-    if valid:
-        monitor()
-
