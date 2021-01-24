@@ -1,5 +1,5 @@
 pyinquirer==1.0.3
-pyfiglet==-0.8
+pyfiglet==0.8.post1
 clint==0.5.1
 python-twitter==3.5
 pynput==1.7.2
