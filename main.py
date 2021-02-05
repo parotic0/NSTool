@@ -18,7 +18,7 @@ import tweepy
 import platform  
 
 
-
+####### todo: stop using global variables.
 # logging in releated stuff
 api = ""
 consumer_key_array= []
@@ -187,16 +187,17 @@ def monitor():
                 if "t.co" in url:       # double check that it's a url
                     start = time.process_time()   # timer  starts
                     print("Found t.co link! - " + url)
-                    print("Unshortening...")
                     unshorten(url)  # gets unshortened
-                    if "twitter.com" not in longurl:  # checks for twitter url, so it can ignore rts and images
+                    if "twitter.com" not in longurl:  # checks for twitter url, so it can ignore retweets and images
                         if "discord" not in longurl:  # checks for discord url
-                            webbrowser.open(longurl)
-                        else:
-                            if discjoiner:
+                            webbrowser.open(longurl)  # if it isn't a twitter/discord link, open in browser
+                        else:                         # but if it is a discord link
+                            if discjoiner:            # and the invite joiner is enabled
                                 print("Discord Invite Detected")
                                 inviteCode = longurl.replace(longurl[:27], '') # gets invite code
-                                JoinInvite(inviteCode)  # runs joininvite
+                                JoinInvite(inviteCode)  # runs joininvite and attempts to join discord.
+                            else:
+                                puts(colored.blue("Discord link was found but Discord joiner was disabled, ignoring..."))
                     else:
                         print("twitter link, ignored")
                     timea = time.process_time() - start
@@ -204,10 +205,10 @@ def monitor():
                     print("Full URL: " + str(longurl))
                     grablatestid() # updates latest tweet, so it doesn't repeat the last found tweet.
             else:
-                amt = len(urltemp) # basically the same thing, but we repeat the unshorten process so we get all urls.
-                consumer_key_array = 0
-                while consumer_key_array != amt:
-                    url = urltemp[consumer_key_array]
+                amtofurls = len(urltemp) # basically the same thing, but we repeat the unshorten process so we get all urls.
+                counter = 0
+                while counter != amtofurls: # loops until it has processed each link. 
+                    url = urltemp[counter]
                     if "t.co" in url:
                         start = time.process_time()
                         print("Found t.co link! - " + url)
@@ -222,13 +223,15 @@ def monitor():
                                     inviteCode = longurl.replace(longurl[:27], '')
                                     print(inviteCode)
                                     JoinInvite(inviteCode)
+                                else:
+                                    puts(colored.blue("Discord link was found but Discord joiner was disabled, ignoring..."))
                         else:
                             print("twitter link, ignored")
                         timea = time.process_time() - start
                         tweettime(recent,timea)
                         print("Full URL: " + str(longurl))
                         grablatestid()
-                    consumer_key_array += 1
+                    counter += 1
         time.sleep(delay)
         sys.stdout.write('\r o')
 
@@ -237,7 +240,6 @@ def verifyUser(acc):  # verify user is real.
     check = api.GetUser(screen_name=acc) # checks if user exists
     if check != "": # if theres actually something
         puts(colored.green('Verified account'))
-        valid = True
         id = check.id
         # follows account so if they go private it's calm
         try:
@@ -269,18 +271,18 @@ def ValidAccessToken(authToken):
     response = requests.get('https://discordapp.com/api/v6/users/@me/billing/payment-sources', headers=headers)
     return response.ok
 
-def unshorten(url):  # nice lil bit of code ngl.
+def unshorten(url):
     global longurl
     session = requests.Session()
-    response = session.head(url, allow_redirects=True)
-    longurl = response.url
+    response = session.head(url, allow_redirects=True) # opens link/follows it
+    longurl = response.url 
 
 def grablatestid():
     global latestid
     latest = str(api.GetUserTimeline(user_id=id, count=1, trim_user=True, exclude_replies=True))
     latestid = int(latest[11:].split(",")[0])  # thanks ian
 
-def setdischeader(account, invitecode): # no idea whats happening, ngl
+def setdischeader(account, invitecode): # the actual invite joiner, dont know why this was split from JoinInvite
     headers = {
         'authority': 'discord.com',
         'accept-language': 'en-US',
@@ -334,7 +336,7 @@ def JoinInvite(inviteCode): # the invite handler
             puts(colored.red('Failed to join server :(.'))
         accountsJoined += 1
 
-def testapikey(): ###################################################################################################
+def testapikey():
     try:
         y = api.VerifyCredentials()
     except Exception:
@@ -425,10 +427,11 @@ def getKEYSfromuser(): # split this into multiple functions
             ClearTERMINAL()
             puts(colored.red("Failed to connect to twitter"))
 
-#def monitorpause(key):
+#def monitorpause(key): not functional, doesn't support mac/linux which is annoying. this needs to be done properly
 #    if key == keyboard.Key.p:
 #        input(puts(colored.blue("Monitor paused...\nPress space to continue")))
 
+# most of this is for the cli
 def TwitterUsername():
     working = False
     while not working:
@@ -439,7 +442,7 @@ def TwitterUsername():
         resp = json.loads(json_str)  # load the json to a string
         acc = resp['twitter username']
         working = verifyUser(acc)
-        time.sleep(10)
+        time.sleep(5)
 
 
 def Settings():
@@ -511,7 +514,7 @@ def keysmenu(): ################################################################
     if resp['Options'] == "Add new discord auth key":  # check what the user picked
         addauthkey()
     if resp['Options'] == "Test API keys":  # check what the user picked
-        print("Which key set do you want to test?\nYou currently have "+amtofapikeys+" API Key(s) and "+amtofauthkeys+" discord auth keys")
+        print("Which key set do you want to test?\nYou currently have "+amtofapikeys+" API Key(s)")
         key = input()
         testapikey(key)
     if resp['Options'] == "Test Discord Auth keys":  # check what the user picked
@@ -594,7 +597,7 @@ def getDatabase():
         while selectedapikeys != amtofapikeys:
             connection.execute("SELECT * FROM data LIMIT 1 OFFSET ? ", (str(selectedapikeys),) )
             row = connection.fetchone()
-            consumer_key_array.append(row[0])  # load
+            consumer_key_array.append(row[0])  # load keys into table
             consumer_secret_array.append(row[1])
             access_token_array.append(row[2])
             access_secret_array.append(row[3])
@@ -607,7 +610,6 @@ def getDatabase():
         conn.close()
         result = "login"
         return result
-
     else:
         puts(colored.red("We cant seem to find your keys please enter them below:"))
         conn.close()
