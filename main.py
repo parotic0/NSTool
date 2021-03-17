@@ -407,7 +407,7 @@ def getKEYSfromuser(): # split this into multiple functions
                 DisplayDiscordUserKeyInput = prompt(userInputDiscord, style=style)
                 json_str1 = json.dumps(DisplayDiscordUserKeyInput)
                 resp1 = json.loads(json_str1)
-                auth = resp1['First Discord Auth key']
+                auth = resp1['discord auth token']
                 result = ValidAccessToken(auth)
                 if result:
                     ClearTERMINAL()
@@ -417,15 +417,13 @@ def getKEYSfromuser(): # split this into multiple functions
                     connection.execute("INSERT INTO data (CK, CSK, ATK, ATSK, DAK) VALUES (?, ?, ?, ?, ?)", (str(consumer_key_array), str(consumer_secret_array), str(access_token_array), str(access_secret_array), str(auth)))
                     conn.commit()
                     conn.close()
-
                 else:
                     puts(colored.green("Failed to connect to Discord"))
                     keyInputSuccess = "1"
                     getKEYSfromuser()
-
-        except tempapi.TwitterError:
+        except:
             ClearTERMINAL()
-            puts(colored.red("Failed to connect to twitter"))
+            puts(colored.red("Failed to connect to twitter! "))
 
 #def monitorpause(key): not functional, doesn't support mac/linux which is annoying. this needs to be done properly
 #    if key == keyboard.Key.p:
