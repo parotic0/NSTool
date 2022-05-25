@@ -172,14 +172,21 @@ def monitor():
     puts(colored.blue('Currently Monitoring - @' + acc + ' // User ID = ' + str(id)))
     grablatestid()
     delay = 0.3
+
+    running = True
+    timerun = 0
+
+
     if fast:    # fast mode = application mode, application mode = higher rate limit which means we can increase speed
         delay = 0.1
-    while True:
+    while running == True:
         recent = str(api.GetUserTimeline(user_id=id, count=1, since_id=latestid, trim_user=True,
                                          exclude_replies=True, ))  # \/ this is some weird regex shit idk whats going on but it works, thanks ian lmao
         urltemp = re.findall(r"(?:(?:https?):\/\/|\b(?:[a-z\d]+\.))(?:(?:[^\s()<>]+|\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))?\))+(?:\((?:[^\s()<>]+|(?:\(?:[^\s()<>]+\)))?\)|[^\s`!()\[\]{};:'\".,<>?Â«Â»â€œâ€â€˜â€™]))?",recent)
-        checkurl = str(urltemp)                
-        sys.stdout.write('\r O')
+        checkurl = str(urltemp)
+
+        sys.stdout.write('\r O      '+str(int(timerun))+'s')
+
         
         if checkurl != "[]": # check if any urls have been picked up
             if len(urltemp) == 1:  # if theres only one url
@@ -232,8 +239,13 @@ def monitor():
                         print("Full URL: " + str(longurl))
                         grablatestid()
                     counter += 1
+        timerun = timerun + delay # there is going to be a 30 second limit on running the app to prevent rate limiting
+        if timerun > 30.0:
+            print("30 second limit reached, stopping monitor")
+            running = False
+       
         time.sleep(delay)
-        sys.stdout.write('\r o')
+        sys.stdout.write('\r o      '+str(int(timerun))+'s')
 
 def verifyUser(acc):  # verify user is real.
     global id
@@ -360,16 +372,16 @@ def testdiscord():
 
 def addapikeys(): # lol this is shit
     #retrieve
-    puts(colored.blue("Enter consumer key"))
+    puts(colored.blue("Enter consumer API key"))
     consumer_key = input()
 
-    puts(colored.blue("Enter consumer secret key"))
+    puts(colored.blue("Enter consumer API secret key"))
     consumer_secret = input()
     
-    puts(colored.blue("Enter application access key"))
+    puts(colored.blue("Enter access token"))
     access_token = input() 
 
-    puts(colored.blue("Enter application secret key"))
+    puts(colored.blue("Enter secret access token"))
     access_secret = input() 
     # add to database
     conn = sqlite3.connect('data.db')
