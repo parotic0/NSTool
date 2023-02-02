@@ -1,3 +1,6 @@
+# NOTICE: THIS TOOL WILL MOST LIKELY STOP WORKING DUE TO CHANGES TO THE TWITTER API
+the software will not be updated to address these changes, if for whatever reason you would like to continue to use NS, you would have to pay twitter to use their API.
+
 # NSTool
 A twitter link opener written in python, includes discord joiner/link unshortener by [Parotic](https://github.com/parotic0) and [Laurence](https://github.com/laurencebedford)
 # About
